@@ -1,0 +1,2 @@
+- When a backend change affects generated Amplify configuration consumed by the frontend, run `npx ampx sandbox --outputs-out-dir '/Users/jeevanjotsinghvital/Desktop/BulBul-SEQS front and backend/BulBul-SEQS-SwiftUI-Frontend/BulBul-SEQS/AmplifyWorks' --profile amplify-dev` so the frontend receives the correct `amplify_outputs.json`.
+- After `amplify_outputs.json` has been generated successfully, stop the local `npx ampx sandbox` watcher process and confirm that it was stopped. Stopping the watcher must not delete the deployed AWS sandbox resources.
