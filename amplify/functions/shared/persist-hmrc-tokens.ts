@@ -5,7 +5,11 @@ type UserDataClient = {
     models: {
         UserData: {
             get(input: { id: string }): Promise<{
-                data?: { id: string; refreshToken?: string | null } | null;
+                data?: {
+                    id: string;
+                    accessToken?: string | null;
+                    refreshToken?: string | null;
+                } | null;
                 errors?: readonly unknown[];
             }>;
             create(input: Record<string, unknown>): Promise<{
@@ -43,6 +47,24 @@ export const getStoredHmrcRefreshToken = async (
     }
 
     return existing.data.refreshToken;
+};
+
+export const getStoredHmrcAccessToken = async (
+    client: UserDataClient,
+    identity: AppSyncIdentityCognito | null | undefined,
+): Promise<string> => {
+    if (!identity?.sub) {
+        throw new Error("A Cognito user identity is required");
+    }
+
+    const existing = await client.models.UserData.get({ id: identity.sub });
+    throwOnDataErrors("read", existing.errors);
+
+    if (!existing.data?.accessToken) {
+        throw new Error("No HMRC access token is available for this user");
+    }
+
+    return existing.data.accessToken;
 };
 
 export const persistHmrcTokens = async (

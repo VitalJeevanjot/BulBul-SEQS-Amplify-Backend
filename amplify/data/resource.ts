@@ -1,6 +1,8 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
 import { changeToAccessToken } from '../functions/change-to-access-token/resource';
+import { listBusinesses } from '../functions/list-businesses/resource';
 import { refreshAccessToken } from '../functions/refresh-access-token/resource';
+import { retrieveBusinessDetails } from '../functions/retrieve-business-details/resource';
 
 /*== STEP 1 ===============================================================
 The section below creates a Todo database table with a "content" field. Try
@@ -23,6 +25,27 @@ const schema = a.schema({
     .returns(a.boolean().required())
     .authorization((allow) => [allow.authenticated('userPools')])
     .handler(a.handler.function(refreshAccessToken)),
+  listBusinesses: a
+    .query()
+    .arguments({
+      nino: a.string().required(),
+      govTestScenario: a.string(),
+      fraudPreventionHeaders: a.string(),
+    })
+    .returns(a.string().required())
+    .authorization((allow) => [allow.authenticated('userPools')])
+    .handler(a.handler.function(listBusinesses)),
+  retrieveBusinessDetails: a
+    .query()
+    .arguments({
+      nino: a.string().required(),
+      businessId: a.string().required(),
+      govTestScenario: a.string(),
+      fraudPreventionHeaders: a.string(),
+    })
+    .returns(a.string().required())
+    .authorization((allow) => [allow.authenticated('userPools')])
+    .handler(a.handler.function(retrieveBusinessDetails)),
   UserData: a
     .model({
       username: a.string(),
@@ -52,7 +75,9 @@ const schema = a.schema({
     .authorization((allow) => [allow.owner().to(['read'])]),
 }).authorization((allow) => [
   allow.resource(changeToAccessToken).to(['query', 'mutate']),
+  allow.resource(listBusinesses).to(['query', 'mutate']),
   allow.resource(refreshAccessToken).to(['query', 'mutate']),
+  allow.resource(retrieveBusinessDetails).to(['query', 'mutate']),
 ]);
 
 export type Schema = ClientSchema<typeof schema>;

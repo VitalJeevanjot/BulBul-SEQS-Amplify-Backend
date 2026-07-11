@@ -2,7 +2,9 @@ import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
 import { data } from './data/resource';
 import { changeToAccessToken } from './functions/change-to-access-token/resource';
+import { listBusinesses } from './functions/list-businesses/resource';
 import { refreshAccessToken } from './functions/refresh-access-token/resource';
+import { retrieveBusinessDetails } from './functions/retrieve-business-details/resource';
 
 /**
  * @see https://docs.amplify.aws/react/build-a-backend/ to add storage, functions, and more
@@ -11,7 +13,9 @@ defineBackend({
   auth,
   data,
   changeToAccessToken,
+  listBusinesses,
   refreshAccessToken,
+  retrieveBusinessDetails,
 });
 
 
