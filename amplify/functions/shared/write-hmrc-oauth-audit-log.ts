@@ -1,30 +1,9 @@
 import type { AppSyncIdentityCognito } from "aws-lambda";
 import { createHash } from "node:crypto";
-import type { HmrcTokenResponse } from "./hmrc-oauth";
-
-type AuditLogClient = {
-    models: {
-        HmrcOAuthAuditLog: {
-            create(input: Record<string, unknown>): Promise<{
-                errors?: readonly unknown[];
-            }>;
-        };
-    };
-};
-
-type AuditEventType =
-    | "HMRC_AUTHORIZATION_CODE_EXCHANGE"
-    | "HMRC_REFRESH_TOKEN_EXCHANGE";
-
-type AuditOutcome = "SUCCEEDED" | "FAILED";
-
-type AuditLogEntry = {
-    eventType: AuditEventType;
-    outcome: AuditOutcome;
-    stateId?: string;
-    tokens?: HmrcTokenResponse;
-    errorMessage?: string;
-};
+import type {
+    AuditLogClient,
+    AuditLogEntry,
+} from "./write-hmrc-oauth-audit-log.types";
 
 const fingerprintToken = (token: string): string =>
     createHash("sha256").update(token).digest("hex");

@@ -1,8 +1,12 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
 import { changeToAccessToken } from '../functions/change-to-access-token/resource';
+import { checkHmrcNino } from '../functions/check-hmrc-nino/resource';
+import { getHmrcTokenStatus } from '../functions/get-hmrc-token-status/resource';
+import { getSignedInUserDetails } from '../functions/get-signed-in-user-details/resource';
 import { listBusinesses } from '../functions/list-businesses/resource';
 import { refreshAccessToken } from '../functions/refresh-access-token/resource';
 import { retrieveBusinessDetails } from '../functions/retrieve-business-details/resource';
+import { customTypes } from './custom-types';
 
 /*== STEP 1 ===============================================================
 The section below creates a Todo database table with a "content" field. Try
@@ -11,20 +15,41 @@ specifies that any unauthenticated user can "create", "read", "update",
 and "delete" any "Todo" records.
 =========================================================================*/
 const schema = a.schema({
+  ...customTypes,
   changeToAccessToken: a
     .mutation()
     .arguments({
       input: a.string().required(),
       stateId: a.string().required(),
     })
-    .returns(a.boolean().required())
+    .returns(a.ref('HmrcOAuthTokenResult').required())
     .authorization((allow) => [allow.authenticated('userPools')])
     .handler(a.handler.function(changeToAccessToken)),
   refreshAccessToken: a
     .mutation()
-    .returns(a.boolean().required())
+    .returns(a.ref('HmrcOAuthTokenResult').required())
     .authorization((allow) => [allow.authenticated('userPools')])
     .handler(a.handler.function(refreshAccessToken)),
+  getHmrcTokenStatus: a
+    .query()
+    .returns(a.ref('HmrcTokenStatusResult').required())
+    .authorization((allow) => [allow.authenticated('userPools')])
+    .handler(a.handler.function(getHmrcTokenStatus)),
+  checkHmrcNino: a
+    .query()
+    .arguments({
+      nino: a.string().required(),
+      govTestScenario: a.string(),
+      fraudPreventionHeaders: a.string(),
+    })
+    .returns(a.ref('HmrcNinoCheckResult').required())
+    .authorization((allow) => [allow.authenticated('userPools')])
+    .handler(a.handler.function(checkHmrcNino)),
+  getSignedInUserDetails: a
+    .query()
+    .returns(a.ref('SignedInUserDetailsResult').required())
+    .authorization((allow) => [allow.authenticated('userPools')])
+    .handler(a.handler.function(getSignedInUserDetails)),
   listBusinesses: a
     .query()
     .arguments({
@@ -32,7 +57,7 @@ const schema = a.schema({
       govTestScenario: a.string(),
       fraudPreventionHeaders: a.string(),
     })
-    .returns(a.string().required())
+    .returns(a.ref('ListBusinessesResult').required())
     .authorization((allow) => [allow.authenticated('userPools')])
     .handler(a.handler.function(listBusinesses)),
   retrieveBusinessDetails: a
@@ -43,7 +68,7 @@ const schema = a.schema({
       govTestScenario: a.string(),
       fraudPreventionHeaders: a.string(),
     })
-    .returns(a.string().required())
+    .returns(a.ref('RetrieveBusinessDetailsResult').required())
     .authorization((allow) => [allow.authenticated('userPools')])
     .handler(a.handler.function(retrieveBusinessDetails)),
   UserData: a
@@ -75,6 +100,9 @@ const schema = a.schema({
     .authorization((allow) => [allow.owner().to(['read'])]),
 }).authorization((allow) => [
   allow.resource(changeToAccessToken).to(['query', 'mutate']),
+  allow.resource(checkHmrcNino).to(['query']),
+  allow.resource(getHmrcTokenStatus).to(['query']),
+  allow.resource(getSignedInUserDetails).to(['query']),
   allow.resource(listBusinesses).to(['query', 'mutate']),
   allow.resource(refreshAccessToken).to(['query', 'mutate']),
   allow.resource(retrieveBusinessDetails).to(['query', 'mutate']),

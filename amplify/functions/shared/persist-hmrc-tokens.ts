@@ -1,34 +1,81 @@
 import type { AppSyncIdentityCognito } from "aws-lambda";
-import type { HmrcTokenResponse } from "./hmrc-oauth";
+import {
+    requestHmrcToken,
+} from "./hmrc-oauth";
+import type { HmrcTokenResponse } from "./hmrc-oauth.types";
+import type {
+    GetStoredHmrcAccessTokenOptions,
+    HmrcTokenStatus,
+    HmrcTokenStoreErrorCode,
+    StoredUserData,
+    UserDataClient,
+} from "./persist-hmrc-tokens.types";
 
-type UserDataClient = {
-    models: {
-        UserData: {
-            get(input: { id: string }): Promise<{
-                data?: {
-                    id: string;
-                    accessToken?: string | null;
-                    refreshToken?: string | null;
-                } | null;
-                errors?: readonly unknown[];
-            }>;
-            create(input: Record<string, unknown>): Promise<{
-                errors?: readonly unknown[];
-            }>;
-            update(input: Record<string, unknown>): Promise<{
-                errors?: readonly unknown[];
-            }>;
-        };
-    };
-};
+const ACCESS_TOKEN_EXPIRATION_LEEWAY_MS = 60_000;
+
+export class HmrcTokenStoreError extends Error {
+    readonly statusCode: number;
+    readonly code: HmrcTokenStoreErrorCode;
+
+    constructor(
+        statusCode: number,
+        code: HmrcTokenStoreErrorCode,
+        message: string,
+    ) {
+        super(message);
+        this.name = "HmrcTokenStoreError";
+        this.statusCode = statusCode;
+        this.code = code;
+    }
+}
 
 const throwOnDataErrors = (
     operation: string,
     errors?: readonly unknown[],
 ): void => {
     if (errors?.length) {
-        throw new Error(`Unable to ${operation} the user's HMRC tokens`);
+        throw new HmrcTokenStoreError(
+            500,
+            "token_storage_failed",
+            `Unable to ${operation} the user's HMRC tokens`,
+        );
     }
+};
+
+const hasStoredToken = (token: string | null | undefined): boolean =>
+    Boolean(token?.trim());
+
+export const hasStoredHmrcAccessToken = (
+    userData: StoredUserData | null | undefined,
+): boolean => hasStoredToken(userData?.accessToken);
+
+export const hasStoredHmrcRefreshToken = (
+    userData: StoredUserData | null | undefined,
+): boolean => hasStoredToken(userData?.refreshToken);
+
+export const getStoredHmrcTokenStatus = async (
+    client: UserDataClient,
+    identity: AppSyncIdentityCognito | null | undefined,
+): Promise<HmrcTokenStatus> => {
+    if (!identity?.sub) {
+        throw new HmrcTokenStoreError(
+            401,
+            "identity_required",
+            "A Cognito user identity is required",
+        );
+    }
+
+    const existing = await client.models.UserData.get({ id: identity.sub });
+    throwOnDataErrors("read", existing.errors);
+
+    const hasAccessToken = hasStoredHmrcAccessToken(existing.data);
+    const hasRefreshToken = hasStoredHmrcRefreshToken(existing.data);
+
+    return {
+        hasAccessToken,
+        hasRefreshToken,
+        isSignedInWithHmrc: hasAccessToken && hasRefreshToken,
+    };
 };
 
 export const getStoredHmrcRefreshToken = async (
@@ -36,14 +83,22 @@ export const getStoredHmrcRefreshToken = async (
     identity: AppSyncIdentityCognito | null | undefined,
 ): Promise<string> => {
     if (!identity?.sub) {
-        throw new Error("A Cognito user identity is required");
+        throw new HmrcTokenStoreError(
+            401,
+            "identity_required",
+            "A Cognito user identity is required",
+        );
     }
 
     const existing = await client.models.UserData.get({ id: identity.sub });
     throwOnDataErrors("read", existing.errors);
 
     if (!existing.data?.refreshToken) {
-        throw new Error("No HMRC refresh token is available for this user");
+        throw new HmrcTokenStoreError(
+            401,
+            "reauthorization_required",
+            "HMRC authorization is required for this user",
+        );
     }
 
     return existing.data.refreshToken;
@@ -52,19 +107,68 @@ export const getStoredHmrcRefreshToken = async (
 export const getStoredHmrcAccessToken = async (
     client: UserDataClient,
     identity: AppSyncIdentityCognito | null | undefined,
+    options: GetStoredHmrcAccessTokenOptions = {},
 ): Promise<string> => {
     if (!identity?.sub) {
-        throw new Error("A Cognito user identity is required");
+        throw new HmrcTokenStoreError(
+            401,
+            "identity_required",
+            "A Cognito user identity is required",
+        );
     }
 
     const existing = await client.models.UserData.get({ id: identity.sub });
     throwOnDataErrors("read", existing.errors);
 
-    if (!existing.data?.accessToken) {
-        throw new Error("No HMRC access token is available for this user");
+    const userData = existing.data;
+
+    if (!userData) {
+        throw new HmrcTokenStoreError(
+            401,
+            "reauthorization_required",
+            "HMRC authorization is required for this user",
+        );
     }
 
-    return existing.data.accessToken;
+    const now = options.now ?? Date.now();
+    const expirationLeewayMs = options.expirationLeewayMs
+        ?? ACCESS_TOKEN_EXPIRATION_LEEWAY_MS;
+    const expiresAt = userData.accessTokenExpiresAt
+        ? Date.parse(userData.accessTokenExpiresAt)
+        : Number.NaN;
+
+    if (
+        userData.accessToken
+        && Number.isFinite(expiresAt)
+        && expiresAt > now + expirationLeewayMs
+    ) {
+        return userData.accessToken;
+    }
+
+    if (!userData.refreshToken) {
+        throw new HmrcTokenStoreError(
+            401,
+            "reauthorization_required",
+            "HMRC authorization is required for this user",
+        );
+    }
+
+    const tokenResult = await (options.requestToken ?? requestHmrcToken)({
+        grant_type: "refresh_token",
+        refresh_token: userData.refreshToken,
+    });
+
+    if (!tokenResult.ok) {
+        throw new HmrcTokenStoreError(
+            tokenResult.error.statusCode,
+            "token_refresh_failed",
+            tokenResult.error.errorDescription,
+        );
+    }
+
+    await persistHmrcTokens(client, identity, tokenResult.tokens);
+
+    return tokenResult.tokens.access_token;
 };
 
 export const persistHmrcTokens = async (
@@ -73,7 +177,11 @@ export const persistHmrcTokens = async (
     tokens: HmrcTokenResponse,
 ): Promise<void> => {
     if (!identity?.sub || !identity.username) {
-        throw new Error("A Cognito user identity is required");
+        throw new HmrcTokenStoreError(
+            401,
+            "identity_required",
+            "A Cognito user identity is required",
+        );
     }
 
     const id = identity.sub;
