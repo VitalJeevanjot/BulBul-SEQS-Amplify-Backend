@@ -1,7 +1,12 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
 import { changeToAccessToken } from '../functions/change-to-access-token/resource';
+import { createTestBusiness } from '../functions/create-test-business/resource';
 import { getHmrcTokenStatus } from '../functions/get-hmrc-token-status/resource';
+import { getSelfEmploymentCumulativeSummaryConsolidated } from '../functions/get-self-employment-cumulative-summary-consolidated/resource';
+import { getSelfEmploymentCumulativeSummaryNonConsolidated } from '../functions/get-self-employment-cumulative-summary-non-consolidated/resource';
 import { listBusinesses } from '../functions/list-businesses/resource';
+import { putSelfEmploymentCumulativeSummaryConsolidated } from '../functions/put-self-employment-cumulative-summary-consolidated/resource';
+import { putSelfEmploymentCumulativeSummaryNonConsolidated } from '../functions/put-self-employment-cumulative-summary-non-consolidated/resource';
 import { refreshAccessToken } from '../functions/refresh-access-token/resource';
 import { retrieveBusinessDetails } from '../functions/retrieve-business-details/resource';
 import { retrieveFinalDeclarationObligations } from '../functions/retrieve-final-declaration-obligations/resource';
@@ -35,6 +40,15 @@ const schema = a.schema({
     .returns(a.ref('HmrcTokenStatusResult').required())
     .authorization((allow) => [allow.authenticated('userPools')])
     .handler(a.handler.function(getHmrcTokenStatus)),
+  createTestBusiness: a
+    .mutation()
+    .arguments({
+      nino: a.string().required(),
+      business: a.ref('CreateTestBusinessPayload').required(),
+    })
+    .returns(a.ref('CreateTestBusinessResult').required())
+    .authorization((allow) => [allow.authenticated('userPools')])
+    .handler(a.handler.function(createTestBusiness)),
   listBusinesses: a
     .query()
     .arguments({
@@ -83,6 +97,56 @@ const schema = a.schema({
     .returns(a.ref('FinalDeclarationObligationsResult').required())
     .authorization((allow) => [allow.authenticated('userPools')])
     .handler(a.handler.function(retrieveFinalDeclarationObligations)),
+  putSelfEmploymentCumulativeSummaryConsolidated: a
+    .mutation()
+    .arguments({
+      nino: a.string().required(),
+      businessId: a.string().required(),
+      taxYear: a.string().required(),
+      summary: a.ref('ConsolidatedCumulativePeriodSummaryPayload').required(),
+      govTestScenario: a.string(),
+      fraudPreventionHeaders: a.string(),
+    })
+    .returns(a.ref('PutCumulativePeriodSummaryResult').required())
+    .authorization((allow) => [allow.authenticated('userPools')])
+    .handler(a.handler.function(putSelfEmploymentCumulativeSummaryConsolidated)),
+  getSelfEmploymentCumulativeSummaryConsolidated: a
+    .query()
+    .arguments({
+      nino: a.string().required(),
+      businessId: a.string().required(),
+      taxYear: a.string().required(),
+      govTestScenario: a.string(),
+      fraudPreventionHeaders: a.string(),
+    })
+    .returns(a.ref('GetConsolidatedCumulativePeriodSummaryResult').required())
+    .authorization((allow) => [allow.authenticated('userPools')])
+    .handler(a.handler.function(getSelfEmploymentCumulativeSummaryConsolidated)),
+  putSelfEmploymentCumulativeSummaryNonConsolidated: a
+    .mutation()
+    .arguments({
+      nino: a.string().required(),
+      businessId: a.string().required(),
+      taxYear: a.string().required(),
+      summary: a.ref('NonConsolidatedCumulativePeriodSummaryPayload').required(),
+      govTestScenario: a.string(),
+      fraudPreventionHeaders: a.string(),
+    })
+    .returns(a.ref('PutCumulativePeriodSummaryResult').required())
+    .authorization((allow) => [allow.authenticated('userPools')])
+    .handler(a.handler.function(putSelfEmploymentCumulativeSummaryNonConsolidated)),
+  getSelfEmploymentCumulativeSummaryNonConsolidated: a
+    .query()
+    .arguments({
+      nino: a.string().required(),
+      businessId: a.string().required(),
+      taxYear: a.string().required(),
+      govTestScenario: a.string(),
+      fraudPreventionHeaders: a.string(),
+    })
+    .returns(a.ref('GetNonConsolidatedCumulativePeriodSummaryResult').required())
+    .authorization((allow) => [allow.authenticated('userPools')])
+    .handler(a.handler.function(getSelfEmploymentCumulativeSummaryNonConsolidated)),
   UserData: a
     .model({
       username: a.string(),
@@ -112,9 +176,14 @@ const schema = a.schema({
     .authorization((allow) => [allow.owner().to(['read'])]),
 }).authorization((allow) => [
   allow.resource(changeToAccessToken).to(['query', 'mutate']),
+  allow.resource(createTestBusiness).to(['query', 'mutate']),
   allow.resource(getHmrcTokenStatus).to(['query']),
+  allow.resource(getSelfEmploymentCumulativeSummaryConsolidated).to(['query', 'mutate']),
+  allow.resource(getSelfEmploymentCumulativeSummaryNonConsolidated).to(['query', 'mutate']),
   allow.resource(listBusinesses).to(['query', 'mutate']),
   allow.resource(refreshAccessToken).to(['query', 'mutate']),
+  allow.resource(putSelfEmploymentCumulativeSummaryConsolidated).to(['query', 'mutate']),
+  allow.resource(putSelfEmploymentCumulativeSummaryNonConsolidated).to(['query', 'mutate']),
   allow.resource(retrieveBusinessDetails).to(['query', 'mutate']),
   allow.resource(retrieveFinalDeclarationObligations).to(['query', 'mutate']),
   allow.resource(retrieveIncomeAndExpenditureObligations).to(['query', 'mutate']),
