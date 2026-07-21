@@ -1,7 +1,7 @@
 import { defineFunction, secret } from "@aws-amplify/backend";
 
-export const checkHmrcNino = defineFunction({
-    name: "check-hmrc-nino",
+export const retrieveIncomeAndExpenditureObligations = defineFunction({
+    name: "retrieve-income-and-expenditure-obligations",
     entry: "./handler.ts",
     timeoutSeconds: 30,
     environment: {

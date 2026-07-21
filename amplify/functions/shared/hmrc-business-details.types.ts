@@ -69,11 +69,3 @@ export type HmrcBusinessDetailsRequest = {
     govTestScenario?: string | null;
     fraudPreventionHeaders?: string | null;
 };
-
-export type HmrcNinoCheck = {
-    isValid: boolean;
-};
-
-export type HmrcNinoCheckResult =
-    | { ok: true; data: HmrcNinoCheck }
-    | { ok: false; error: HmrcApiError };

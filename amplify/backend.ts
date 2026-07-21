@@ -2,12 +2,12 @@ import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
 import { data } from './data/resource';
 import { changeToAccessToken } from './functions/change-to-access-token/resource';
-import { checkHmrcNino } from './functions/check-hmrc-nino/resource';
 import { getHmrcTokenStatus } from './functions/get-hmrc-token-status/resource';
-import { getSignedInUserDetails } from './functions/get-signed-in-user-details/resource';
 import { listBusinesses } from './functions/list-businesses/resource';
 import { refreshAccessToken } from './functions/refresh-access-token/resource';
 import { retrieveBusinessDetails } from './functions/retrieve-business-details/resource';
+import { retrieveFinalDeclarationObligations } from './functions/retrieve-final-declaration-obligations/resource';
+import { retrieveIncomeAndExpenditureObligations } from './functions/retrieve-income-and-expenditure-obligations/resource';
 
 /**
  * @see https://docs.amplify.aws/react/build-a-backend/ to add storage, functions, and more
@@ -16,12 +16,12 @@ defineBackend({
   auth,
   data,
   changeToAccessToken,
-  checkHmrcNino,
   getHmrcTokenStatus,
-  getSignedInUserDetails,
   listBusinesses,
   refreshAccessToken,
   retrieveBusinessDetails,
+  retrieveFinalDeclarationObligations,
+  retrieveIncomeAndExpenditureObligations,
 });
 
 

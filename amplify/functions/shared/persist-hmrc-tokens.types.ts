@@ -40,7 +40,5 @@ export type GetStoredHmrcAccessTokenOptions = {
 };
 
 export type HmrcTokenStatus = {
-    hasAccessToken: boolean;
-    hasRefreshToken: boolean;
     isSignedInWithHmrc: boolean;
 };

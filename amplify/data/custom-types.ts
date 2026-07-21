@@ -75,33 +75,40 @@ export const customTypes = {
     data: a.ref('BusinessDetails'),
     error: a.ref('HmrcApiError'),
   }),
+  ObligationDetail: a.customType({
+    periodStartDate: a.date().required(),
+    periodEndDate: a.date().required(),
+    dueDate: a.date().required(),
+    status: a.string().required(),
+    receivedDate: a.date(),
+  }),
+  BusinessObligations: a.customType({
+    typeOfBusiness: a.string().required(),
+    businessId: a.string().required(),
+    obligationDetails: a.ref('ObligationDetail').array().required(),
+  }),
+  IncomeAndExpenditureObligationsResponse: a.customType({
+    obligations: a.ref('BusinessObligations').array().required(),
+  }),
+  FinalDeclarationObligationsResponse: a.customType({
+    obligations: a.ref('ObligationDetail').array().required(),
+  }),
+  IncomeAndExpenditureObligationsResult: a.customType({
+    success: a.boolean().required(),
+    data: a.ref('IncomeAndExpenditureObligationsResponse'),
+    error: a.ref('HmrcApiError'),
+  }),
+  FinalDeclarationObligationsResult: a.customType({
+    success: a.boolean().required(),
+    data: a.ref('FinalDeclarationObligationsResponse'),
+    error: a.ref('HmrcApiError'),
+  }),
   HmrcTokenStatus: a.customType({
-    hasAccessToken: a.boolean().required(),
-    hasRefreshToken: a.boolean().required(),
     isSignedInWithHmrc: a.boolean().required(),
   }),
   HmrcTokenStatusResult: a.customType({
     success: a.boolean().required(),
     data: a.ref('HmrcTokenStatus'),
-    error: a.ref('HmrcApiError'),
-  }),
-  HmrcNinoCheck: a.customType({
-    isValid: a.boolean().required(),
-  }),
-  HmrcNinoCheckResult: a.customType({
-    success: a.boolean().required(),
-    data: a.ref('HmrcNinoCheck'),
-    error: a.ref('HmrcApiError'),
-  }),
-  SignedInUserDetails: a.customType({
-    userId: a.string().required(),
-    username: a.string().required(),
-    email: a.email(),
-    hmrcTokenStatus: a.ref('HmrcTokenStatus').required(),
-  }),
-  SignedInUserDetailsResult: a.customType({
-    success: a.boolean().required(),
-    data: a.ref('SignedInUserDetails'),
     error: a.ref('HmrcApiError'),
   }),
 };

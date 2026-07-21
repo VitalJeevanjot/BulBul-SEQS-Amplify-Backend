@@ -6,7 +6,6 @@ import type {
     HmrcApiError,
     HmrcBusinessDetailsRequest,
     HmrcBusinessDetailsResult,
-    HmrcNinoCheckResult,
     LatencyDetails,
     ListBusinessesResponse,
     QuarterlyTypeChoice,
@@ -375,45 +374,4 @@ export const requestHmrcBusinessDetails = async <T>(
             },
         };
     }
-};
-
-const ninoNotAuthorizedErrorCodes = new Set([
-    "FORBIDDEN",
-    "CLIENT_OR_AGENT_NOT_AUTHORISED",
-    "NO_BUSINESS_FOUND",
-]);
-
-export const checkHmrcNinoAuthorization = async (
-    accessToken: string,
-    nino: string,
-    options: Pick<
-        HmrcBusinessDetailsRequest,
-        "govTestScenario" | "fraudPreventionHeaders"
-    > = {},
-): Promise<HmrcNinoCheckResult> => {
-    try {
-        assertValidNino(nino);
-    } catch (error) {
-        if (error instanceof HmrcBusinessDetailsError) {
-            return { ok: true, data: { isValid: false } };
-        }
-
-        throw error;
-    }
-
-    const result = await requestHmrcBusinessDetails({
-        accessToken,
-        path: `/individuals/business/details/${encodeURIComponent(nino)}/list`,
-        ...options,
-    }, parseListBusinessesResponse);
-
-    if (result.ok) {
-        return { ok: true, data: { isValid: true } };
-    }
-
-    if (ninoNotAuthorizedErrorCodes.has(result.error.code)) {
-        return { ok: true, data: { isValid: false } };
-    }
-
-    return result;
 };

@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import {
-    checkHmrcNinoAuthorization,
     HmrcBusinessDetailsError,
     parseBusinessDetailsResponse,
     parseListBusinessesResponse,
@@ -107,6 +106,32 @@ test("preserves a structured HMRC error and correlation ID", async () => {
     });
 });
 
+test("returns the List All Businesses error for an unauthorized NINO", async () => {
+    process.env.HMRC_API_BASE_URL = "https://example.test";
+    globalThis.fetch = async () => new Response(JSON.stringify({
+        code: "CLIENT_OR_AGENT_NOT_AUTHORISED",
+        message: "The client and/or agent is not authorised",
+    }), {
+        status: 403,
+        headers: { "X-CorrelationId": "correlation-nino" },
+    });
+
+    const result = await requestHmrcBusinessDetails({
+        accessToken: "access-token",
+        path: "/individuals/business/details/AA123456A/list",
+    }, parseListBusinessesResponse);
+
+    assert.deepEqual(result, {
+        ok: false,
+        error: {
+            statusCode: 403,
+            code: "CLIENT_OR_AGENT_NOT_AUTHORISED",
+            message: "The client and/or agent is not authorised",
+            correlationId: "correlation-nino",
+        },
+    });
+});
+
 test("rejects a malformed successful HMRC response", async () => {
     process.env.HMRC_API_BASE_URL = "https://example.test";
     globalThis.fetch = async () => new Response(JSON.stringify({
@@ -148,49 +173,4 @@ test("classifies malformed fraud prevention headers as a client error", async ()
             return true;
         },
     );
-});
-
-test("confirms a NINO authorized for the signed-in HMRC user", async () => {
-    process.env.HMRC_API_BASE_URL = "https://example.test";
-    globalThis.fetch = async () => new Response(JSON.stringify({
-        listOfBusinesses: [],
-    }), { status: 200 });
-
-    const result = await checkHmrcNinoAuthorization(
-        "access-token",
-        "AA123456A",
-    );
-
-    assert.deepEqual(result, { ok: true, data: { isValid: true } });
-});
-
-test("rejects a NINO that is not authorized for the HMRC credentials", async () => {
-    process.env.HMRC_API_BASE_URL = "https://example.test";
-    globalThis.fetch = async () => new Response(JSON.stringify({
-        code: "FORBIDDEN",
-        message: "The client and/or agent is not authorised",
-    }), { status: 403 });
-
-    const result = await checkHmrcNinoAuthorization(
-        "access-token",
-        "AA123456A",
-    );
-
-    assert.deepEqual(result, { ok: true, data: { isValid: false } });
-});
-
-test("rejects an invalid NINO format without calling HMRC", async () => {
-    let fetchCalls = 0;
-    globalThis.fetch = async () => {
-        fetchCalls += 1;
-        throw new Error("HMRC should not be called");
-    };
-
-    const result = await checkHmrcNinoAuthorization(
-        "access-token",
-        "not-a-nino",
-    );
-
-    assert.deepEqual(result, { ok: true, data: { isValid: false } });
-    assert.equal(fetchCalls, 0);
 });

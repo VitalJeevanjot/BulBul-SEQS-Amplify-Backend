@@ -72,8 +72,6 @@ export const getStoredHmrcTokenStatus = async (
     const hasRefreshToken = hasStoredHmrcRefreshToken(existing.data);
 
     return {
-        hasAccessToken,
-        hasRefreshToken,
         isSignedInWithHmrc: hasAccessToken && hasRefreshToken,
     };
 };

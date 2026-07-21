@@ -48,8 +48,6 @@ test("checks stored HMRC token presence without exposing token values", async ()
     assert.equal(hasStoredHmrcAccessToken(userData), true);
     assert.equal(hasStoredHmrcRefreshToken(userData), true);
     assert.deepEqual(await getStoredHmrcTokenStatus(client, identity), {
-        hasAccessToken: true,
-        hasRefreshToken: true,
         isSignedInWithHmrc: true,
     });
 });
@@ -65,10 +63,28 @@ test("does not treat blank stored HMRC tokens as present", async () => {
     assert.equal(hasStoredHmrcAccessToken(userData), false);
     assert.equal(hasStoredHmrcRefreshToken(userData), false);
     assert.deepEqual(await getStoredHmrcTokenStatus(client, identity), {
-        hasAccessToken: false,
-        hasRefreshToken: false,
         isSignedInWithHmrc: false,
     });
+});
+
+test("requires both stored HMRC tokens to consider the user signed in", async () => {
+    const accessTokenOnly = createClient({
+        id: identity.sub,
+        accessToken: "access-token",
+    });
+    const refreshTokenOnly = createClient({
+        id: identity.sub,
+        refreshToken: "refresh-token",
+    });
+
+    assert.deepEqual(
+        await getStoredHmrcTokenStatus(accessTokenOnly.client, identity),
+        { isSignedInWithHmrc: false },
+    );
+    assert.deepEqual(
+        await getStoredHmrcTokenStatus(refreshTokenOnly.client, identity),
+        { isSignedInWithHmrc: false },
+    );
 });
 
 test("returns a stored HMRC access token while it is still valid", async () => {
