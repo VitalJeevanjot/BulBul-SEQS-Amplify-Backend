@@ -163,7 +163,7 @@ Optional `fraudPreventionHeaders` arguments are JSON-encoded objects, and `govTe
 - Shared clients validate identifiers, dates, tax years, monetary amounts, response shapes, and fraud-prevention headers.
 - HMRC errors are normalized into typed results while preserving correlation IDs when available.
 
-## How I used Codex to build this project
+## How I used Codex to build this project (Codex Drafted Summary and I approve)
 
 I used Codex as an engineering collaborator inside the repository, not as a one-shot code generator. The workflow was iterative:
 
