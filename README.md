@@ -4,6 +4,8 @@ An AWS Amplify Gen 2 backend for BulBul SEQS, providing secure authentication an
 
 The backend uses Amazon Cognito, AWS AppSync, Lambda, and Amplify Data to handle HMRC OAuth tokens, business data, obligations, and self-employment cumulative summaries. It targets HMRC's sandbox by default and is designed to be consumed by the companion SwiftUI application.
 
+The SwiftUI app that uses it is [BulBul-SEQS-SwiftUI-Frontend](https://github.com/VitalJeevanjot/BulBul-SEQS-SwiftUI-Frontend).
+
 ## What it provides
 
 | Area | Capabilities |
